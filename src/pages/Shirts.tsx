@@ -4,26 +4,18 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import ProductCard from "@/components/ProductCard";
-import { getProductsByCategory } from "@/data/products";
+import { useProducts } from "@/hooks/useProducts";
 
 const Shirts = () => {
   const [sortBy, setSortBy] = useState("featured");
   const [showFilters, setShowFilters] = useState(false);
-  const [shirts, setShirts] = useState(getProductsByCategory("shirts"));
+  const { products } = useProducts();
+  const [shirts, setShirts] = useState<any[]>([]);
 
   // Refresh products when localStorage changes
   useEffect(() => {
-    const handleStorageChange = () => {
-      setShirts(getProductsByCategory("shirts"));
-    };
-    
-    window.addEventListener('storage', handleStorageChange);
-    setShirts(getProductsByCategory("shirts"));
-    
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
-  }, []);
+    setShirts(products.filter((p: any) => p.category === "shirts"));
+  }, [products]);
 
   const sortOptions = [
     { value: "featured", label: "Featured" },

@@ -10,9 +10,22 @@ import { toast } from "sonner";
 import { useState } from "react";
 import CustomerInfoForm from "@/components/CustomerInfoForm";
 
-interface ProductCardProps {
-  product: Product;
-}
+type LegacyProduct = Product;
+
+type SupabaseProduct = {
+  id: string;
+  title?: string;
+  name?: string;
+  price: number;
+  originalPrice?: number;
+  image_url?: string;
+  image?: string;
+  description?: string;
+  sizes?: string[];
+  colors?: string[];
+};
+
+interface ProductCardProps { product: LegacyProduct | SupabaseProduct; }
 
 const ProductCard = ({ product }: ProductCardProps) => {
   const { addToCart } = useCart();
@@ -22,8 +35,14 @@ const ProductCard = ({ product }: ProductCardProps) => {
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    addToCart(product);
-    toast.success(`${product.name} added to cart!`);
+    // For cart, coerce to legacy shape minimally
+    const legacy: any = {
+      ...(product as any),
+      name: (product as any).name || (product as any).title || "Item",
+      image: (product as any).image || (product as any).image_url || "/placeholder.svg",
+    };
+    addToCart(legacy);
+    toast.success(`${legacy.name} added to cart!`);
   };
 
   const handleBuyNow = (e: React.MouseEvent) => {
@@ -38,19 +57,19 @@ const ProductCard = ({ product }: ProductCardProps) => {
     await toggleWishlist(product);
   };
 
-  const discountPercentage = product.originalPrice 
-    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+  const discountPercentage = (product as any).originalPrice 
+    ? Math.round(((((product as any).originalPrice - (product as any).price) / (product as any).originalPrice) * 100))
     : 0;
 
   return (
     <Card className="group cursor-pointer transition-all duration-300 hover:shadow-hover border-border/50 bg-card-gradient">
-      <Link to={`/product/${product.id}`}>
+      <Link to={`/product/${(product as any).id}`}>
         <CardContent className="p-0">
           {/* Image */}
           <div className="relative overflow-hidden rounded-t-lg">
             <img
-              src={product.image}
-              alt={product.name}
+              src={(product as any).image || (product as any).image_url}
+              alt={(product as any).name || (product as any).title}
               className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
             />
             {discountPercentage > 0 && (
@@ -73,21 +92,21 @@ const ProductCard = ({ product }: ProductCardProps) => {
           {/* Content */}
           <div className="p-4">
             <h3 className="font-semibold text-foreground mb-2 line-clamp-2">
-              {product.name}
+              {(product as any).name || (product as any).title}
             </h3>
             
             <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-              {product.description}
+              {(product as any).description}
             </p>
 
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <span className="text-lg font-bold text-foreground">
-                  ₹{product.price.toLocaleString()}
+                  ₹{(product as any).price.toLocaleString()}
                 </span>
-                {product.originalPrice && (
+                {(product as any).originalPrice && (
                   <span className="text-sm text-muted-foreground line-through">
-                    ₹{product.originalPrice.toLocaleString()}
+                    ₹{(product as any).originalPrice.toLocaleString()}
                   </span>
                 )}
               </div>
@@ -115,14 +134,14 @@ const ProductCard = ({ product }: ProductCardProps) => {
 
             {/* Sizes/Colors */}
             <div className="mt-3 pt-3 border-t border-border/50">
-              {product.sizes && (
+              {(product as any).sizes && (
                 <div className="text-xs text-muted-foreground">
-                  Sizes: {product.sizes.join(", ")}
+                  Sizes: {(product as any).sizes.join(", ")}
                 </div>
               )}
-              {product.colors && (
+              {(product as any).colors && (
                 <div className="text-xs text-muted-foreground mt-1">
-                  Colors: {product.colors.join(", ")}
+                  Colors: {(product as any).colors.join(", ")}
                 </div>
               )}
             </div>

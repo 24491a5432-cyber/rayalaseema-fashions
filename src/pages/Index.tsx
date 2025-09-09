@@ -2,28 +2,11 @@ import { Link } from "react-router-dom";
 import { ArrowRight, Truck, Shield, RotateCcw, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ProductCard from "@/components/ProductCard";
-import { getFeaturedProducts, getAllProducts } from "@/data/products";
-import { useState, useEffect } from "react";
+import { getFeaturedProducts } from "@/data/products";
+import { useProducts } from "@/hooks/useProducts";
 
 const Index = () => {
-  const [allProducts, setAllProducts] = useState(getAllProducts());
-  
-  // Refresh products when component mounts or localStorage changes
-  useEffect(() => {
-    const handleStorageChange = () => {
-      setAllProducts(getAllProducts());
-    };
-    
-    // Listen for storage changes
-    window.addEventListener('storage', handleStorageChange);
-    
-    // Also check on mount in case products were added
-    setAllProducts(getAllProducts());
-    
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
-  }, []);
+  const { products: allProducts } = useProducts();
   
   const featuredProducts = getFeaturedProducts();
 
