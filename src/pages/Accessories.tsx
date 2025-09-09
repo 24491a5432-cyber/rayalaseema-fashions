@@ -4,26 +4,18 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import ProductCard from "@/components/ProductCard";
-import { getProductsByCategory } from "@/data/products";
+import { useProducts } from "@/hooks/useProducts";
 
 const Accessories = () => {
   const [sortBy, setSortBy] = useState("featured");
   const [showFilters, setShowFilters] = useState(false);
-  const [accessories, setAccessories] = useState(getProductsByCategory("accessories"));
+  const { products } = useProducts();
+  const [accessories, setAccessories] = useState<any[]>([]);
 
   // Refresh products when localStorage changes
   useEffect(() => {
-    const handleStorageChange = () => {
-      setAccessories(getProductsByCategory("accessories"));
-    };
-    
-    window.addEventListener('storage', handleStorageChange);
-    setAccessories(getProductsByCategory("accessories"));
-    
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
-  }, []);
+    setAccessories(products.filter((p: any) => p.category === "accessories"));
+  }, [products]);
 
   const sortOptions = [
     { value: "featured", label: "Featured" },
