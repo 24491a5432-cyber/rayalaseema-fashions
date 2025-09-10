@@ -17,6 +17,7 @@ const ProductManagement = () => {
   const [isAddingProduct, setIsAddingProduct] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const { toast } = useToast();
+  const BUCKET = (import.meta as any).env?.VITE_SUPABASE_PRODUCT_BUCKET || "product-images";
 
   const [imageMode, setImageMode] = useState<"upload" | "url">("upload");
   const [file, setFile] = useState<File | null>(null);
@@ -51,9 +52,14 @@ const ProductManagement = () => {
     if (!file) return form.image || "";
     const ext = file.name.split('.').pop() || 'jpg';
     const path = `products/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-    const { error: uploadError } = await supabase.storage.from("product-images").upload(path, file, { upsert: true, contentType: file.type });
-    if (uploadError) throw uploadError;
-    const { data: { publicUrl } } = supabase.storage.from("product-images").getPublicUrl(path);
+    const { error: uploadError } = await supabase.storage.from(BUCKET).upload(path, file, { upsert: true, contentType: file.type });
+    if (uploadError) {
+      if ((uploadError as any)?.message?.toLowerCase?.().includes("bucket not found")) {
+        throw new Error(`Storage bucket "${BUCKET}" not found. Create it in Supabase Storage or set VITE_SUPABASE_PRODUCT_BUCKET.`);
+      }
+      throw uploadError;
+    }
+    const { data: { publicUrl } } = supabase.storage.from(BUCKET).getPublicUrl(path);
     return publicUrl;
   };
 
