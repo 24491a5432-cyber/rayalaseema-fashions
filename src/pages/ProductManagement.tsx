@@ -18,7 +18,7 @@ const ProductManagement = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const [imageMode, setImageMode] = useState<"upload" | "url">("upload");
+  const [imageMode, setImageMode] = useState<"upload" | "url">("url");
   const [file, setFile] = useState<File | null>(null);
 
   const [form, setForm] = useState<Partial<ProductRecord>>({
@@ -41,7 +41,7 @@ const ProductManagement = () => {
     setForm({ name: "", category: "shirts", price: 0, description: "", image: "", in_stock: true });
     setEditingId(null);
     setFile(null);
-    setImageMode("upload");
+    setImageMode("url");
   };
 
   const uploadImageIfNeeded = async (): Promise<string> => {
