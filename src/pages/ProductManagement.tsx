@@ -38,7 +38,6 @@ const ProductManagement = () => {
   const resetForm = () => {
     setForm({ title: "", category: "shirts", price: 0, description: "", image_url: "", stock: 0 });
     setEditingId(null);
-    setIsAddingProduct(false);
   };
 
   const handleSave = async () => {
@@ -63,6 +62,7 @@ const ProductManagement = () => {
         toast({ title: "Added", description: "Product added successfully" });
       }
       resetForm();
+      setIsAddingProduct(false);
     } catch (e: any) {
       toast({ title: "Failed", description: e.message || "Could not save product", variant: "destructive" });
     }

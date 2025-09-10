@@ -8,7 +8,9 @@ import { useProducts } from "@/hooks/useProducts";
 const Index = () => {
   const { products: allProducts } = useProducts();
   
-  const featuredProducts = getFeaturedProducts();
+  const featuredProducts = allProducts && allProducts.length > 0
+    ? allProducts.slice(0, 6)
+    : getFeaturedProducts();
 
   return (
     <div className="min-h-screen">

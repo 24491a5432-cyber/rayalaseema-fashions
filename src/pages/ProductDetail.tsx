@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, ShoppingCart, Heart, Star, Truck, Shield, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useCart } from "@/hooks/useCart";
 import { getProductById, getProductsByCategory } from "@/data/products";
+import { useProducts } from "@/hooks/useProducts";
 import ProductCard from "@/components/ProductCard";
 import CustomerInfoForm from "@/components/CustomerInfoForm";
 import { toast } from "sonner";
@@ -18,7 +19,29 @@ const ProductDetail = () => {
   const [selectedSize, setSelectedSize] = useState<string>("");
   const [selectedColor, setSelectedColor] = useState<string>("");
   
-  const product = id ? getProductById(id) : null;
+  const { products: dbProducts } = useProducts();
+
+  const product = useMemo(() => {
+    if (!id) return null;
+    // Try Supabase first
+    const fromDb = (dbProducts as any[])?.find((p: any) => p.id === id);
+    if (fromDb) {
+      return {
+        id: fromDb.id,
+        name: (fromDb as any).name || fromDb.title || "Item",
+        category: fromDb.category,
+        price: fromDb.price,
+        originalPrice: (fromDb as any).originalPrice,
+        image: (fromDb as any).image || fromDb.image_url || "/placeholder.svg",
+        description: fromDb.description || "",
+        sizes: (fromDb as any).sizes,
+        colors: (fromDb as any).colors,
+        inStock: (fromDb as any).stock ? (fromDb as any).stock > 0 : true,
+      } as any;
+    }
+    // Fallback to legacy/local
+    return getProductById(id) as any;
+  }, [id, dbProducts]);
   
   if (!product) {
     return (
@@ -31,9 +54,23 @@ const ProductDetail = () => {
     );
   }
 
-  const relatedProducts = getProductsByCategory(product.category)
-    .filter(p => p.id !== product.id)
-    .slice(0, 4);
+  const relatedProducts = useMemo(() => {
+    const sameCategoryDb = (dbProducts as any[])?.filter((p: any) => p.category === product.category) || [];
+    const normalized = sameCategoryDb.map((p: any) => ({
+      id: p.id,
+      name: p.name || p.title || "Item",
+      category: p.category,
+      price: p.price,
+      originalPrice: p.originalPrice,
+      image: p.image || p.image_url || "/placeholder.svg",
+      description: p.description || "",
+    }));
+    const legacy = getProductsByCategory(product.category) as any[];
+    const merged = [...normalized, ...legacy].filter(p => p.id !== product.id);
+    const seen = new Set<string>();
+    const unique = merged.filter(p => (seen.has(p.id) ? false : (seen.add(p.id), true)));
+    return unique.slice(0, 4);
+  }, [dbProducts, product]);
 
   const discountPercentage = product.originalPrice 
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
