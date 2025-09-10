@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Edit, Trash2, Save, X, Link as LinkIcon } from "lucide-react";
+import { Plus, Edit, Trash2, Save, X, Link as LinkIcon, Upload } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useProducts, ProductRecord } from "@/hooks/useProducts";
+import { supabase } from "@/integrations/supabase/client";
 
 const ProductManagement = () => {
   const { products, isLoading, addProduct, updateProduct, deleteProduct } = useProducts();
@@ -17,15 +18,16 @@ const ProductManagement = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const [imageMode] = useState<"url">("url");
+  const [imageMode, setImageMode] = useState<"upload" | "url">("upload");
+  const [file, setFile] = useState<File | null>(null);
 
   const [form, setForm] = useState<Partial<ProductRecord>>({
-    title: "",
+    name: "",
     category: "shirts",
     price: 0,
     description: "",
-    image_url: "",
-    stock: 0,
+    image: "",
+    in_stock: true,
   });
 
   const categories = [
@@ -36,29 +38,46 @@ const ProductManagement = () => {
   ];
 
   const resetForm = () => {
-    setForm({ title: "", category: "shirts", price: 0, description: "", image_url: "", stock: 0 });
+    setForm({ name: "", category: "shirts", price: 0, description: "", image: "", in_stock: true });
     setEditingId(null);
+    setFile(null);
+    setImageMode("upload");
+  };
+
+  const uploadImageIfNeeded = async (): Promise<string> => {
+    if (imageMode === "url") {
+      return form.image || "";
+    }
+    if (!file) return form.image || "";
+    const ext = file.name.split('.').pop() || 'jpg';
+    const path = `products/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const { error: uploadError } = await supabase.storage.from("product-images").upload(path, file, { upsert: true, contentType: file.type });
+    if (uploadError) throw uploadError;
+    const { data: { publicUrl } } = supabase.storage.from("product-images").getPublicUrl(path);
+    return publicUrl;
   };
 
   const handleSave = async () => {
-    if (!form.title || !form.price || !form.category) {
+    if (!form.name || !form.price || !form.category) {
       toast({ title: "Error", description: "Please fill all required fields", variant: "destructive" });
       return;
     }
 
     try {
+      const imageUrl = await uploadImageIfNeeded();
       if (editingId) {
-        await updateProduct({ id: editingId, ...form });
+        await updateProduct({ id: editingId, ...form, image: imageUrl });
         toast({ title: "Updated", description: "Product updated successfully" });
       } else {
         await addProduct({
-          title: form.title!,
+          name: form.name!,
           price: Number(form.price),
           category: form.category!,
-          image_url: form.image_url || "/placeholder.svg",
+          image: imageUrl || "/placeholder.svg",
           description: form.description || "",
-          stock: Number(form.stock || 0),
-        });
+          original_price: form.original_price ?? null,
+          in_stock: form.in_stock ?? true,
+        } as any);
         toast({ title: "Added", description: "Product added successfully" });
       }
       resetForm();
@@ -71,12 +90,13 @@ const ProductManagement = () => {
   const handleEdit = (p: ProductRecord) => {
     setEditingId(p.id);
     setForm({
-      title: p.title,
+      name: p.name,
       category: p.category,
       price: p.price,
       description: p.description,
-      image_url: p.image_url,
-      stock: p.stock,
+      image: p.image,
+      original_price: p.original_price,
+      in_stock: p.in_stock,
     });
     setIsAddingProduct(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -122,8 +142,8 @@ const ProductManagement = () => {
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="title">Product Title *</Label>
-                  <Input id="title" value={form.title || ""} onChange={(e) => setForm({ ...form, title: e.target.value })} className="bg-muted border-border" placeholder="Enter product title" />
+                  <Label htmlFor="name">Product Name *</Label>
+                  <Input id="name" value={form.name || ""} onChange={(e) => setForm({ ...form, name: e.target.value })} className="bg-muted border-border" placeholder="Enter product name" />
                 </div>
 
                 <div className="space-y-2">
@@ -152,21 +172,28 @@ const ProductManagement = () => {
               </div>
 
               <div className="space-y-4">
-                <Label>Product Image URL</Label>
-                <Tabs value={imageMode}>
-                  <TabsList className="grid w-full grid-cols-1">
+                <Label>Product Image</Label>
+                <Tabs value={imageMode} onValueChange={(v) => setImageMode(v as any)}>
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="upload">
+                      <Upload className="w-4 h-4 mr-2" />
+                      Upload
+                    </TabsTrigger>
                     <TabsTrigger value="url">
                       <LinkIcon className="w-4 h-4 mr-2" />
-                      External URL
+                      URL
                     </TabsTrigger>
                   </TabsList>
+                  <TabsContent value="upload" className="space-y-2">
+                    <Input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] || null)} className="bg-muted border-border" />
+                  </TabsContent>
                   <TabsContent value="url" className="space-y-2">
-                    <Input value={form.image_url || ""} onChange={(e) => setForm({ ...form, image_url: e.target.value })} className="bg-muted border-border" placeholder="https://..." />
+                    <Input value={form.image || ""} onChange={(e) => setForm({ ...form, image: e.target.value })} className="bg-muted border-border" placeholder="https://..." />
                   </TabsContent>
                 </Tabs>
-                {form.image_url && (
+                {(form.image || file) && (
                   <div className="mt-2">
-                    <img src={form.image_url} alt="Preview" className="w-32 h-32 object-cover rounded-lg border" />
+                    <img src={file ? URL.createObjectURL(file) : (form.image as string)} alt="Preview" className="w-32 h-32 object-cover rounded-lg border" />
                   </div>
                 )}
               </div>
@@ -197,16 +224,16 @@ const ProductManagement = () => {
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
-                      {p.image_url && <img src={p.image_url} alt={p.title} className="w-full h-32 object-cover rounded-lg mb-4" />}
-                      <h3 className="font-semibold text-lg mb-1">{p.title}</h3>
+                      {p.image && <img src={p.image} alt={p.name} className="w-full h-32 object-cover rounded-lg mb-4" />}
+                      <h3 className="font-semibold text-lg mb-1">{p.name}</h3>
                       <p className="text-muted-foreground text-sm mb-2">{p.category}</p>
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-brand-gold font-bold">₹{p.price}</span>
                       </div>
                       <p className="text-muted-foreground text-sm mb-3 line-clamp-2">{p.description}</p>
                       <div className="flex items-center gap-2">
-                        <Badge variant={p.stock && p.stock > 0 ? "default" : "destructive"} className="text-xs">
-                          {p.stock && p.stock > 0 ? `In Stock: ${p.stock}` : "Out of Stock"}
+                        <Badge variant={p.in_stock ? "default" : "destructive"} className="text-xs">
+                          {p.in_stock ? "In Stock" : "Out of Stock"}
                         </Badge>
                       </div>
                     </div>
