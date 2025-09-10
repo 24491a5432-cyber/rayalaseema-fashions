@@ -50,9 +50,25 @@ export const useProducts = () => {
   const updateMutation = useMutation({
     mutationFn: async (payload: Partial<ProductRecord> & { id: string }) => {
       const { id, ...rest } = payload;
+      // Only include columns that exist in the products table
+      const allowedKeys = [
+        "name",
+        "price",
+        "category",
+        "image",
+        "description",
+        "original_price",
+        "in_stock",
+      ] as const;
+      const updateData: Record<string, unknown> = {};
+      for (const key of allowedKeys) {
+        if (key in rest && (rest as any)[key] !== undefined) {
+          (updateData as any)[key] = (rest as any)[key];
+        }
+      }
       const { data, error } = await supabase
         .from("products")
-        .update(rest)
+        .update(updateData)
         .eq("id", id)
         .select("*")
         .single();
