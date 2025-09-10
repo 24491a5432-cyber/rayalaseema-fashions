@@ -1,14 +1,9 @@
 import { useState, useEffect } from "react";
-import { Filter } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import ProductCard from "@/components/ProductCard";
 import { useProducts } from "@/hooks/useProducts";
 
 const Pants = () => {
   const [sortBy, setSortBy] = useState("featured");
-  const [showFilters, setShowFilters] = useState(false);
   const { products } = useProducts();
   const [pants, setPants] = useState<any[]>([]);
 
@@ -58,15 +53,6 @@ const Pants = () => {
           </div>
           
           <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              onClick={() => setShowFilters(!showFilters)}
-              className="md:hidden"
-            >
-              <Filter className="w-4 h-4 mr-2" />
-              Filters
-            </Button>
-            
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
@@ -82,82 +68,13 @@ const Pants = () => {
         </div>
       </div>
 
-      <div className="flex gap-8">
-        {/* Filters Sidebar */}
-        <Card className={`w-80 flex-shrink-0 ${showFilters ? 'block' : 'hidden'} md:block`}>
-          <CardContent className="p-6">
-            <h3 className="font-semibold mb-4">Filters</h3>
-            
-            {/* Size Filter */}
-            <div className="mb-6">
-              <h4 className="font-medium mb-3">Waist Size</h4>
-              <div className="flex flex-wrap gap-2">
-                {["28", "30", "32", "34", "36", "38"].map((size) => (
-                  <Badge 
-                    key={size} 
-                    variant="outline" 
-                    className="cursor-pointer hover:bg-brand-gold hover:text-brand-navy"
-                  >
-                    {size}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-
-            {/* Type Filter */}
-            <div className="mb-6">
-              <h4 className="font-medium mb-3">Type</h4>
-              <div className="space-y-2">
-                {["Chinos", "Formal Trousers", "Jeans", "Casual Pants"].map((type) => (
-                  <label key={type} className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" className="rounded" />
-                    <span className="text-sm">{type}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Color Filter */}
-            <div className="mb-6">
-              <h4 className="font-medium mb-3">Color</h4>
-              <div className="flex flex-wrap gap-2">
-                {["Khaki", "Navy", "Black", "Brown", "Blue", "Gray"].map((color) => (
-                  <Badge 
-                    key={color} 
-                    variant="outline"
-                    className="cursor-pointer hover:bg-brand-gold hover:text-brand-navy"
-                  >
-                    {color}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-
-            {/* Price Filter */}
-            <div className="mb-6">
-              <h4 className="font-medium mb-3">Price Range</h4>
-              <div className="space-y-2">
-                {[
-                  { label: "Under ₹1,500", value: "0-1500" },
-                  { label: "₹1,500 - ₹2,000", value: "1500-2000" },
-                  { label: "₹2,000 - ₹2,500", value: "2000-2500" },
-                  { label: "Above ₹2,500", value: "2500+" }
-                ].map((range) => (
-                  <label key={range.value} className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" className="rounded" />
-                    <span className="text-sm">{range.label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Products Grid */}
-        <div className="flex-1">
+      {/* Products Grid */}
+      <div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {getSortedProducts().map((product) => (
-              <ProductCard key={product.id} product={product} />
+              <div key={product.id}>
+                <ProductCard product={product} />
+              </div>
             ))}
           </div>
 
@@ -166,7 +83,6 @@ const Pants = () => {
               <p className="text-muted-foreground">No pants found matching your criteria.</p>
             </div>
           )}
-        </div>
       </div>
     </div>
   );
